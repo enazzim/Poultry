@@ -375,6 +375,13 @@ a.button-link.compact {
   font-size: 0.9rem;
 }
 
+.consent-box {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

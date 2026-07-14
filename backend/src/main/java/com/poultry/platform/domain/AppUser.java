@@ -28,6 +28,18 @@ public class AppUser {
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
+    /** Phone used for SMS / Alimtalk (consent required to send). */
+    @Column(length = 40)
+    private String notifyPhone;
+
+    @Column(nullable = false)
+    private boolean smsConsent = false;
+
+    @Column(nullable = false)
+    private boolean alimtalkConsent = false;
+
+    private Instant consentAt;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -43,5 +55,13 @@ public class AppUser {
     public void setRole(UserRole role) { this.role = role; }
     public Organization getOrganization() { return organization; }
     public void setOrganization(Organization organization) { this.organization = organization; }
+    public String getNotifyPhone() { return notifyPhone; }
+    public void setNotifyPhone(String notifyPhone) { this.notifyPhone = notifyPhone; }
+    public boolean isSmsConsent() { return smsConsent; }
+    public void setSmsConsent(boolean smsConsent) { this.smsConsent = smsConsent; }
+    public boolean isAlimtalkConsent() { return alimtalkConsent; }
+    public void setAlimtalkConsent(boolean alimtalkConsent) { this.alimtalkConsent = alimtalkConsent; }
+    public Instant getConsentAt() { return consentAt; }
+    public void setConsentAt(Instant consentAt) { this.consentAt = consentAt; }
     public Instant getCreatedAt() { return createdAt; }
 }

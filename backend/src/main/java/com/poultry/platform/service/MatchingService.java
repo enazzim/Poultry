@@ -1,25 +1,36 @@
 package com.poultry.platform.service;
 
 import com.poultry.platform.domain.*;
+import com.poultry.platform.notify.*;
+import com.poultry.platform.repository.AppUserRepository;
 import com.poultry.platform.repository.PartnerPreferenceRepository;
+import com.poultry.platform.repository.UserInterestRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class MatchingService {
 
     private final PartnerPreferenceRepository preferenceRepository;
-    private final NotificationService notificationService;
+    private final UserInterestRepository userInterestRepository;
+    private final AppUserRepository appUserRepository;
+    private final NotifyPort notifyPort;
     private final CategoryAttributeDefRepositoryProxy attributeProxy;
 
     public MatchingService(PartnerPreferenceRepository preferenceRepository,
-                           NotificationService notificationService,
+                           UserInterestRepository userInterestRepository,
+                           AppUserRepository appUserRepository,
+                           NotifyPort notifyPort,
                            CategoryAttributeDefRepositoryProxy attributeProxy) {
         this.preferenceRepository = preferenceRepository;
-        this.notificationService = notificationService;
+        this.userInterestRepository = userInterestRepository;
+        this.appUserRepository = appUserRepository;
+        this.notifyPort = notifyPort;
         this.attributeProxy = attributeProxy;
     }
 
@@ -28,35 +39,70 @@ public class MatchingService {
         if (listing.getStatus() != ListingStatus.OPEN) {
             return;
         }
-        List<PartnerPreference> prefs = preferenceRepository.findByCategoryIdAndPushEnabledTrue(listing.getCategory().getId());
         String highlight = attributeProxy.buildNotifySnippet(listing);
+        String title = "[" + listing.getCategory().getName() + "] 관심분야 신규 공고";
+        String body = (listing.getTitle() != null ? listing.getTitle() + " · " : "")
+                + listing.getQuantity() + listing.getUnit()
+                + " · " + listing.getRegionCode()
+                + (highlight.isBlank() ? "" : " · " + highlight);
 
+        Map<String, String> templateVars = Map.of(
+                "#{category}", listing.getCategory().getName(),
+                "#{title}", listing.getTitle() != null ? listing.getTitle() : ("공고#" + listing.getId()),
+                "#{region}", listing.getRegionCode() != null ? listing.getRegionCode() : ""
+        );
+
+        Set<Long> notifiedUserIds = new HashSet<>();
+
+        for (UserInterest interest : userInterestRepository.findByCategoryIdFetchUser(listing.getCategory().getId())) {
+            AppUser user = interest.getUser();
+            if (sameOrg(user, listing)) {
+                continue;
+            }
+            if (notifiedUserIds.add(user.getId())) {
+                dispatchToUser(user, title, body, listing.getId(), templateVars);
+            }
+        }
+
+        List<PartnerPreference> prefs = preferenceRepository.findByCategoryIdAndPushEnabledTrue(listing.getCategory().getId());
         for (PartnerPreference pref : prefs) {
             if (pref.getOrganization().getId().equals(listing.getOrganization().getId())) {
                 continue;
             }
-            if (!matchesRegion(pref, listing)) {
+            if (!matchesRegion(pref, listing) || !matchesQuantity(pref, listing)
+                    || !matchesAttributes(pref.getAttributeFilters(), listing.getAttributes())) {
                 continue;
             }
-            if (pref.getMinQuantity() != null && listing.getQuantity().compareTo(pref.getMinQuantity()) < 0) {
-                continue;
+            for (AppUser user : appUserRepository.findByOrganizationId(pref.getOrganization().getId())) {
+                if (notifiedUserIds.add(user.getId())) {
+                    dispatchToUser(user, title, body, listing.getId(), templateVars);
+                }
             }
-            if (!matchesAttributes(pref.getAttributeFilters(), listing.getAttributes())) {
-                continue;
-            }
-            String title = "[" + listing.getCategory().getName() + "] 신규 공고";
-            String body = (listing.getTitle() != null ? listing.getTitle() + " · " : "")
-                    + listing.getQuantity() + listing.getUnit()
-                    + " · " + listing.getRegionCode()
-                    + (highlight.isBlank() ? "" : " · " + highlight);
-            notificationService.notifyOrganization(
-                    pref.getOrganization().getId(),
-                    title,
-                    body,
-                    "LISTING_MATCH",
-                    listing.getId()
-            );
         }
+    }
+
+    private boolean sameOrg(AppUser user, Listing listing) {
+        return user.getOrganization() != null
+                && user.getOrganization().getId().equals(listing.getOrganization().getId());
+    }
+
+    private void dispatchToUser(AppUser user, String title, String body, Long listingId,
+                                Map<String, String> templateVars) {
+        String phone = user.getNotifyPhone();
+        if ((phone == null || phone.isBlank()) && user.getOrganization() != null) {
+            phone = user.getOrganization().getPhone();
+        }
+        NotifyRecipient recipient = new NotifyRecipient(
+                user.getId(),
+                user.getDisplayName(),
+                phone,
+                user.isSmsConsent(),
+                user.isAlimtalkConsent(),
+                true
+        );
+        NotifyMessage message = new NotifyMessage(title, body, "LISTING_MATCH", listingId, templateVars);
+        notifyPort.dispatch(NotifyRequest.interestMatch(
+                recipient, message, user.isSmsConsent(), user.isAlimtalkConsent()));
     }
 
     private boolean matchesRegion(PartnerPreference pref, Listing listing) {
@@ -64,6 +110,10 @@ public class MatchingService {
             return true;
         }
         return pref.getRegions().contains(listing.getRegionCode());
+    }
+
+    private boolean matchesQuantity(PartnerPreference pref, Listing listing) {
+        return pref.getMinQuantity() == null || listing.getQuantity().compareTo(pref.getMinQuantity()) >= 0;
     }
 
     private boolean matchesAttributes(Map<String, Object> filters, Map<String, Object> attrs) {
@@ -83,7 +133,6 @@ public class MatchingService {
         return true;
     }
 
-    /** Thin wrapper to avoid circular deps / keep MatchingService focused */
     @Service
     public static class CategoryAttributeDefRepositoryProxy {
         private final com.poultry.platform.repository.CategoryAttributeDefRepository repo;

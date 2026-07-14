@@ -45,6 +45,8 @@ export interface AuthUser {
   organizationName: string
   farmCode?: string | null
   mesLinked: boolean
+  smsConsent?: boolean
+  alimtalkConsent?: boolean
 }
 
 export interface Listing {

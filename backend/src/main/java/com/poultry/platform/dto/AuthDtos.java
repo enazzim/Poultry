@@ -16,7 +16,12 @@ public class AuthDtos {
             String regionCode,
             String phone,
             String farmCode,
-            List<String> categoryCodes
+            /** Partner trading categories (PARTNER required). */
+            List<String> categoryCodes,
+            /** Categories to watch for new listings (required for all roles). */
+            @NotNull List<String> interestCategoryCodes,
+            boolean smsConsent,
+            boolean alimtalkConsent
     ) {}
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {}
@@ -29,9 +34,9 @@ public class AuthDtos {
             UserRole role,
             Long organizationId,
             String organizationName,
-            /** MES(EggFactory) 연동 농가 코드. 미연동이면 null */
             String farmCode,
-            /** farmCode 등록 여부로 추론한 MES 옵트인 상태 */
-            boolean mesLinked
+            boolean mesLinked,
+            boolean smsConsent,
+            boolean alimtalkConsent
     ) {}
 }

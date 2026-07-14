@@ -76,14 +76,40 @@ export function RegisterPage() {
     phone: '',
     farmCode: '',
     categoryCodes: [] as string[],
+    interestCategoryCodes: [] as string[],
+    smsConsent: true,
+    alimtalkConsent: true,
   })
   const [error, setError] = useState('')
+  const [categoriesError, setCategoriesError] = useState('')
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
+  function loadCategories() {
+    setCategoriesLoading(true)
+    setCategoriesError('')
+    api<Category[]>('/api/categories')
+      .then((list) => {
+        setCategories(list)
+        if (!list.length) {
+          setCategoriesError('등록된 카테고리가 없습니다. 백엔드 시드 또는 DB를 확인해 주세요.')
+        }
+      })
+      .catch((e) => {
+        setCategories([])
+        setCategoriesError(
+          e instanceof Error
+            ? `카테고리를 불러오지 못했습니다. 백엔드(8080) 기동 여부를 확인해 주세요. (${e.message})`
+            : '카테고리를 불러오지 못했습니다.',
+        )
+      })
+      .finally(() => setCategoriesLoading(false))
+  }
 
   useEffect(() => {
-    api<Category[]>('/api/categories').then(setCategories).catch(() => setCategories([]))
+    loadCategories()
   }, [])
 
-  function toggleCategory(code: string) {
+  function toggleTradeCategory(code: string) {
     setForm((prev) => ({
       ...prev,
       categoryCodes: prev.categoryCodes.includes(code)
@@ -92,9 +118,30 @@ export function RegisterPage() {
     }))
   }
 
+  function toggleInterest(code: string) {
+    setForm((prev) => ({
+      ...prev,
+      interestCategoryCodes: prev.interestCategoryCodes.includes(code)
+        ? prev.interestCategoryCodes.filter((c) => c !== code)
+        : [...prev.interestCategoryCodes, code],
+    }))
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
+    if (form.interestCategoryCodes.length === 0) {
+      setError('관심 분야를 1개 이상 선택해 주세요.')
+      return
+    }
+    if (!form.smsConsent && !form.alimtalkConsent) {
+      setError('SMS 또는 알림톡 수신 동의가 필요합니다.')
+      return
+    }
+    if (!form.phone.trim()) {
+      setError('알림 수신용 휴대폰 번호를 입력해 주세요.')
+      return
+    }
     try {
       const auth = await api<AuthUser>('/api/auth/register', {
         method: 'POST',
@@ -165,10 +212,12 @@ export function RegisterPage() {
             />
           </label>
           <label className="field">
-            <span>연락처</span>
+            <span>휴대폰 (알림 수신용) *</span>
             <input
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="010-1234-5678"
+              required
             />
           </label>
           {form.role === 'FARM' && (
@@ -185,21 +234,73 @@ export function RegisterPage() {
             </label>
           )}
         </div>
-        {form.role === 'PARTNER' && (
-          <div className="chip-group">
-            <span className="field-label">취급 카테고리 *</span>
-            {categories.map((c) => (
+
+        <div className="chip-group">
+          <span className="field-label">관심 분야 * (신규 공고 알림)</span>
+          {categoriesLoading && <p className="muted">카테고리 불러오는 중…</p>}
+          {categoriesError && (
+            <p className="error">
+              {categoriesError}{' '}
+              <button type="button" className="ghost" onClick={loadCategories}>
+                다시 시도
+              </button>
+            </p>
+          )}
+          {!categoriesLoading &&
+            !categoriesError &&
+            categories.map((c) => (
               <label key={c.code} className="chip">
                 <input
                   type="checkbox"
-                  checked={form.categoryCodes.includes(c.code)}
-                  onChange={() => toggleCategory(c.code)}
+                  checked={form.interestCategoryCodes.includes(c.code)}
+                  onChange={() => toggleInterest(c.code)}
                 />
                 {c.name}
               </label>
             ))}
+        </div>
+
+        {form.role === 'PARTNER' && (
+          <div className="chip-group">
+            <span className="field-label">취급 카테고리 *</span>
+            {categoriesLoading && <p className="muted">카테고리 불러오는 중…</p>}
+            {!categoriesLoading &&
+              categories.map((c) => (
+                <label key={`trade-${c.code}`} className="chip">
+                  <input
+                    type="checkbox"
+                    checked={form.categoryCodes.includes(c.code)}
+                    onChange={() => toggleTradeCategory(c.code)}
+                  />
+                  {c.name}
+                </label>
+              ))}
           </div>
         )}
+
+        <div className="consent-box panel">
+          <p className="field-label">수신 동의 *</p>
+          <p className="muted small">
+            관심 분야에 새 공고가 등록되면 동의한 채널로 알림을 보냅니다. (앱 알림 + SMS/알림톡)
+          </p>
+          <label className="chip">
+            <input
+              type="checkbox"
+              checked={form.smsConsent}
+              onChange={(e) => setForm({ ...form, smsConsent: e.target.checked })}
+            />
+            SMS(문자) 수신 동의
+          </label>
+          <label className="chip">
+            <input
+              type="checkbox"
+              checked={form.alimtalkConsent}
+              onChange={(e) => setForm({ ...form, alimtalkConsent: e.target.checked })}
+            />
+            카카오 알림톡 수신 동의
+          </label>
+        </div>
+
         {error && <p className="error">{error}</p>}
         <button type="submit">가입</button>
         <p className="muted">

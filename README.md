@@ -16,6 +16,29 @@
 
 MES(`farmCode`)는 선택 연동입니다. EggFactory를 쓰지 않는 농가도 수동 공고로 참여합니다.
 
+## 알림 (NotifyPort → 향후 회사 Notify API)
+
+관심분야·수신동의 후 신규 공고 매칭 시 **앱 알림 + SMS + 알림톡**을 `NotifyPort`로 발송합니다.
+
+- 패키지: `com.poultry.platform.notify`
+- 채널: `IN_APP` / `SMS`(Solapi) / `ALIMTALK`(Solapi 카카오)
+- 발송 감사 로그: `notify_delivery_logs`
+- 체험 API: `POST /api/notify/v1/messages` (JWT, 향후 API Key 멀티테넌트로 확장)
+
+`application.properties`에서 Solapi/알림톡 키를 넣으면 실제 발송, 비우면 dry-run 로그만 남깁니다.
+
+```properties
+app.notify.solapi.enabled=true
+app.notify.solapi.api-key=...
+app.notify.solapi.api-secret=...
+app.notify.solapi.sender=010xxxxxxxx
+app.notify.kakao.enabled=true
+app.notify.kakao.pf-id=...
+app.notify.kakao.template-id=...
+```
+
+회원가입 시 **관심 분야 1개 이상** + **SMS/알림톡 중 1개 이상 동의** + **휴대폰**이 필요합니다.
+
 ## 기술 스택
 
 - Backend: Spring Boot 3.5 · Java 17 · Gradle · MariaDB

@@ -30,6 +30,7 @@ public class SeedDataConfig {
                                PortalArticleRepository articleRepository,
                                PortalProductRepository productRepository,
                                ListingRepository listingRepository,
+                               UserInterestRepository userInterestRepository,
                                PasswordEncoder passwordEncoder,
                                ObjectMapper objectMapper) {
         return args -> {
@@ -101,7 +102,17 @@ public class SeedDataConfig {
                 farmUser.setDisplayName("농장주");
                 farmUser.setRole(UserRole.FARM);
                 farmUser.setOrganization(farm);
+                farmUser.setNotifyPhone("010-1111-1111");
+                farmUser.setSmsConsent(true);
+                farmUser.setAlimtalkConsent(true);
+                farmUser.setConsentAt(Instant.now());
                 appUserRepository.save(farmUser);
+                categoryRepository.findByCode("EGG").ifPresent(egg -> {
+                    UserInterest ui = new UserInterest();
+                    ui.setUser(farmUser);
+                    ui.setCategory(egg);
+                    userInterestRepository.save(ui);
+                });
             }
 
             if (!appUserRepository.existsByUsername("farm2")) {
@@ -118,7 +129,17 @@ public class SeedDataConfig {
                 farm2User.setDisplayName("농장주(수동)");
                 farm2User.setRole(UserRole.FARM);
                 farm2User.setOrganization(farmManual);
+                farm2User.setNotifyPhone("010-3333-3333");
+                farm2User.setSmsConsent(true);
+                farm2User.setAlimtalkConsent(false);
+                farm2User.setConsentAt(Instant.now());
                 appUserRepository.save(farm2User);
+                categoryRepository.findByCode("FEED").ifPresent(feed -> {
+                    UserInterest ui = new UserInterest();
+                    ui.setUser(farm2User);
+                    ui.setCategory(feed);
+                    userInterestRepository.save(ui);
+                });
             }
 
             if (!appUserRepository.existsByUsername("dealer1")) {
@@ -149,7 +170,43 @@ public class SeedDataConfig {
                 dealerUser.setDisplayName("도매담당");
                 dealerUser.setRole(UserRole.PARTNER);
                 dealerUser.setOrganization(dealer);
+                dealerUser.setNotifyPhone("010-2222-2222");
+                dealerUser.setSmsConsent(true);
+                dealerUser.setAlimtalkConsent(true);
+                dealerUser.setConsentAt(Instant.now());
                 appUserRepository.save(dealerUser);
+                categoryRepository.findByCode("EGG").ifPresent(egg -> {
+                    UserInterest ui = new UserInterest();
+                    ui.setUser(dealerUser);
+                    ui.setCategory(egg);
+                    userInterestRepository.save(ui);
+                });
+            }
+
+            // Backfill consent/interests for existing seed users (avoid lazy org access)
+            Map<String, String> seedPhones = Map.of(
+                    "dealer1", "010-2222-2222",
+                    "farm1", "010-1111-1111",
+                    "farm2", "010-3333-3333"
+            );
+            for (Map.Entry<String, String> entry : seedPhones.entrySet()) {
+                appUserRepository.findByUsername(entry.getKey()).ifPresent(u -> {
+                    if (!u.isSmsConsent() && !u.isAlimtalkConsent()) {
+                        u.setNotifyPhone(entry.getValue());
+                        u.setSmsConsent(true);
+                        u.setAlimtalkConsent(true);
+                        u.setConsentAt(Instant.now());
+                        appUserRepository.save(u);
+                    }
+                    if (userInterestRepository.findByUserId(u.getId()).isEmpty()) {
+                        categoryRepository.findByCode("EGG").ifPresent(egg -> {
+                            UserInterest ui = new UserInterest();
+                            ui.setUser(u);
+                            ui.setCategory(egg);
+                            userInterestRepository.save(ui);
+                        });
+                    }
+                });
             }
 
             if (!productRepository.existsByCode("FEATURED_LISTING")) {
