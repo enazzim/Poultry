@@ -1,0 +1,192 @@
+[
+  {
+    "code": "EGG",
+    "name": "계란",
+    "description": "잉여·출하 계란 매칭",
+    "allowedSides": "BOTH",
+    "defaultUnit": "TRAY",
+    "sortOrder": 1,
+    "attributes": [
+      {
+        "fieldKey": "eggGrade",
+        "label": "규격",
+        "dataType": "ENUM",
+        "required": true,
+        "enumOptions": ["왕란", "특란", "대란", "중란", "소란", "비규격란"],
+        "sortOrder": 1,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "eggType",
+        "label": "종류",
+        "dataType": "ENUM",
+        "required": true,
+        "enumOptions": ["일반", "무항생제", "유정란"],
+        "sortOrder": 2,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "layDate",
+        "label": "산란일",
+        "dataType": "DATE",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 3,
+        "matchable": false,
+        "showInNotify": true
+      }
+    ]
+  },
+  {
+    "code": "CHICK",
+    "name": "입추",
+    "description": "병아리·중병아리 입추 수급",
+    "allowedSides": "BOTH",
+    "defaultUnit": "BIRD",
+    "sortOrder": 2,
+    "attributes": [
+      {
+        "fieldKey": "breed",
+        "label": "품종",
+        "dataType": "STRING",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 1,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "ageWeeks",
+        "label": "주령",
+        "dataType": "NUMBER",
+        "required": false,
+        "enumOptions": [],
+        "sortOrder": 2,
+        "matchable": false,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "neededAt",
+        "label": "입추희망일",
+        "dataType": "DATE",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 3,
+        "matchable": false,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "birdCount",
+        "label": "수수",
+        "dataType": "NUMBER",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 4,
+        "matchable": false,
+        "showInNotify": true
+      }
+    ]
+  },
+  {
+    "code": "MANURE",
+    "name": "계분",
+    "description": "계분 수거·처리",
+    "allowedSides": "BOTH",
+    "defaultUnit": "TON",
+    "sortOrder": 3,
+    "attributes": [
+      {
+        "fieldKey": "estimatedTons",
+        "label": "예상량(톤)",
+        "dataType": "NUMBER",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 1,
+        "matchable": false,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "pickupWindow",
+        "label": "수거희망시각",
+        "dataType": "STRING",
+        "required": false,
+        "enumOptions": [],
+        "sortOrder": 2,
+        "matchable": false,
+        "showInNotify": true
+      }
+    ]
+  },
+  {
+    "code": "FEED",
+    "name": "사료",
+    "description": "사료 공급·요청",
+    "allowedSides": "BOTH",
+    "defaultUnit": "BAG",
+    "sortOrder": 4,
+    "attributes": [
+      {
+        "fieldKey": "feedType",
+        "label": "사료종류",
+        "dataType": "STRING",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 1,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "desiredDeliveryDate",
+        "label": "희망납기",
+        "dataType": "DATE",
+        "required": false,
+        "enumOptions": [],
+        "sortOrder": 2,
+        "matchable": false,
+        "showInNotify": true
+      }
+    ]
+  },
+  {
+    "code": "VACCINE",
+    "name": "백신",
+    "description": "백신·동물약품",
+    "allowedSides": "BOTH",
+    "defaultUnit": "PACK",
+    "sortOrder": 5,
+    "attributes": [
+      {
+        "fieldKey": "productName",
+        "label": "제품명",
+        "dataType": "STRING",
+        "required": true,
+        "enumOptions": [],
+        "sortOrder": 1,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "diseaseTarget",
+        "label": "대상질병",
+        "dataType": "STRING",
+        "required": false,
+        "enumOptions": [],
+        "sortOrder": 2,
+        "matchable": true,
+        "showInNotify": true
+      },
+      {
+        "fieldKey": "neededBy",
+        "label": "필요시기",
+        "dataType": "DATE",
+        "required": false,
+        "enumOptions": [],
+        "sortOrder": 3,
+        "matchable": false,
+        "showInNotify": true
+      }
+    ]
+  }
+]
